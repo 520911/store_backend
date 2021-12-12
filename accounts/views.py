@@ -46,6 +46,9 @@ class ConfirmRegisterUserView(APIView):
             token = ConfirmEmailToken.objects.filter(
                 Q(key=request.data['token']) & Q(user__email=request.data['email'])).select_related('user').first()
             if token:
+                user = User.objects.filter(email=request.data['email']).first()
+                user.is_active = True
+                user.save()
                 return Response({'status': 'Пользователь зарегистрирован'})
             else:
                 return Response({'status': 'Пользователь не зарегистрирован'})
