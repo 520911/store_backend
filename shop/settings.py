@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     'django_filters',
     'rest_framework.authtoken',
     'django_rest_passwordreset',
+    'rest_framework_swagger',
+    'drf_yasg',
 
     'accounts',
     'orders',
