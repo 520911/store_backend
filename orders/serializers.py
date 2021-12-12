@@ -13,7 +13,7 @@ class ShopSerializer(ModelSerializer):
 
 
 class CategoriesSerializer(ModelSerializer):
-    shops = ShopSerializer()
+    shops = ShopSerializer(many=True)
 
     class Meta:
         model = Shop
