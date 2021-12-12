@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'django_rest_passwordreset',
 
     'accounts',
+    'orders',
 ]
 
 REST_FRAMEWORK = {
