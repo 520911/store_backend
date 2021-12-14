@@ -3,6 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -108,7 +109,8 @@ class ContactsView(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    def put(self, request, *args, **kwargs):
+    @action(detail=True, methods=['put'])
+    def contact_update(self, request, *args, **kwargs):
         if {'id'}.issubset(request.data):
             contact = Contact.objects.filter(id=request.data['id']).first()
             serializer = ContactsSerializer(instance=contact, data=request.data, partial=True)
@@ -118,7 +120,8 @@ class ContactsView(ModelViewSet):
         else:
             return Response({'Заполните все данные': 'id'})
 
-    def delete(self, request, *args, **kwargs):
+    @action(detail=True, methods=['destroy'])
+    def contact_delete(self, request, *args, **kwargs):
         for contact_id in request.data['items'].split(','):
             contact = Contact.objects.filter(id=int(contact_id)).first()
             self.perform_destroy(contact)
