@@ -5,6 +5,7 @@ from rest_framework import permissions
 from django.conf.urls import url
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+import debug_toolbar
 
 
 schema_view = get_schema_view(  # new
@@ -24,9 +25,11 @@ schema_view = get_schema_view(  # new
 
 
 urlpatterns = [
+    path('__debug__/', include(debug_toolbar.urls)),
     path('admin/', admin.site.urls),
     path('api/v1/user/', include('accounts.urls', 'accounts_api')),
     path('api/v1/', include('orders.urls', 'orders_api')),
+    path('api/v1/', include('partners.urls', 'partners_api')),
     path(  # new
         'swagger-ui/',
         TemplateView.as_view(

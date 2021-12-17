@@ -3,9 +3,11 @@ from django.http import JsonResponse
 from requests import get
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
 from yaml import load as load_yaml, Loader
-
+from orders.serializers import ShopSerializer, OrdersSerializer
 from orders.models import Shop, Category, ProductInfo, Product, Parameter, ProductParameter
 
 
@@ -55,3 +57,38 @@ class PartnerUpdate(APIView):
                 return JsonResponse({'Status': True})
 
         return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+
+
+class ShopStateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if request.user.type != 'shop':
+            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+        user_shop = request.user.shop
+        serializer = ShopSerializer(user_shop)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        if request.user.type != 'shop':
+            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+        if {'state'}.issubset(request.data):
+            state = request.data.get('state')
+            request.user.shop.state = bool(state)
+            serializer = ShopSerializer(instance=request.user.shop, data=request.data, partial=True)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({'Change info successfully': status.HTTP_200_OK})
+        else:
+            return Response({'Заполните все данные': 'state'})
+
+
+class OrdersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if request.user.type != 'shop':
+            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+        user_orders = request.user.orders
+        serializer = OrdersSerializer(user_orders, many=True)
+        return Response(serializer.data)

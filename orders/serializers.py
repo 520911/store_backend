@@ -1,7 +1,7 @@
 from rest_framework.serializers import ModelSerializer
 
-from accounts.serializers import UserSerializer
-from .models import Shop
+from accounts.serializers import UserSerializer, ContactsSerializer
+from .models import Shop, Order, Product
 
 
 class ShopSerializer(ModelSerializer):
@@ -18,3 +18,20 @@ class CategoriesSerializer(ModelSerializer):
     class Meta:
         model = Shop
         fields = ['name', 'shops']
+
+
+class OrdersSerializer(ModelSerializer):
+    user = UserSerializer()
+    contact = ContactsSerializer()
+
+    class Meta:
+        model = Order
+        fields = ['user', 'dt', 'state', 'contact']
+
+
+class ProductsSerializer(ModelSerializer):
+    category = CategoriesSerializer()
+
+    class Meta:
+        model = Product
+        fields = ['name', 'category']
