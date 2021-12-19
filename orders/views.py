@@ -1,14 +1,20 @@
 from django.db.models import Q
 from django.http import JsonResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
+from ujson import loads as json_loads
 
 from accounts.models import User, Contact
-from .models import Shop, Category, Order, Product
-from .serializers import ShopSerializer, CategoriesSerializer, OrdersSerializer, ProductsSerializer
+from .models import Shop, Category, Order, Product, OrderItem, ProductInfo
+from .serializers import ShopSerializer, CategoriesSerializer, OrdersSerializer, ProductsSerializer, \
+    OrderItemAddSerializer, OrderItemSerializer
 
 
 class ShopListView(ListAPIView):
@@ -61,3 +67,44 @@ class SearchProductsView(ListAPIView):
 
         queryset = Product.objects.filter(query).select_related('category').prefetch_related('category__shops')
         return queryset
+
+
+class BasketView(ModelViewSet):
+    queryset = OrderItem.objects.filter(order__state='basket').select_related('order')
+    serializer_class = OrderItemAddSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['order__dt']
+
+    def get_queryset(self):
+        user = self.request.user
+        orders = OrderItem.objects.filter(order__user=user).select_related('order')
+        return orders
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def create_basket(self, request, *args, **kwargs):
+        if request.user.type != 'buyer':
+            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+        items = request.data.get('items')
+        if items:
+            try:
+                items_list = json_loads(items)
+            except ValueError:
+                return Response({'Status': False, 'Error': 'Неверный формат данных'})
+            else:
+                order, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
+                for item in items_list:
+                    product_info = ProductInfo.objects.filter(id=item['product_info']).first()
+                    if product_info:
+                        OrderItem.objects.update_or_create(order_id=order.id,
+                                                           product_info_id=product_info.id,
+                                                           quantity=item['quantity'])
+                    else:
+                        return Response({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'Status': 'OK'})
+        else:
+            return Response({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
