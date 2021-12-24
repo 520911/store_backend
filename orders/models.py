@@ -148,3 +148,6 @@ class OrderItem(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['order_id', 'product_info'], name='unique_order_item'),
         ]
+
+    def __str__(self):
+        return self.product_info.model, self.order

@@ -8,8 +8,8 @@ app_name = 'orders'
 basket_methods = BasketView.as_view({
     'get': 'list',
     'post': 'create_basket',
-    # 'put': 'contact_update',
-    # 'delete': 'contact_delete'
+    'put': 'update_basket',
+    'delete': 'delete_basket'
 })
 
 url_contacts = format_suffix_patterns([

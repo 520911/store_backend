@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.db.models import Q
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
@@ -98,13 +99,66 @@ class BasketView(ModelViewSet):
             else:
                 order, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 for item in items_list:
-                    product_info = ProductInfo.objects.filter(id=item['product_info']).first()
+                    try:
+                        product_info = ProductInfo.objects.filter(id=item['product_info']).first()
+                    except KeyError:
+                        return Response({'Status': 'Ошибка в поле product_info'})
                     if product_info:
-                        OrderItem.objects.update_or_create(order_id=order.id,
-                                                           product_info_id=product_info.id,
-                                                           quantity=item['quantity'])
+                        try:
+                            OrderItem.objects.update_or_create(order_id=order.id,
+                                                               product_info_id=product_info.id,
+                                                               quantity=item['quantity'])
+                        except (IntegrityError, KeyError) as errors:
+                            return Response({'Status': f'{errors}'})
                     else:
                         return Response({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'Status': 'OK'})
+        else:
+            return Response({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['put'])
+    def update_basket(self, request, *args, **kwargs):
+        if request.user.type != 'buyer':
+            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+        items = request.data.get('items')
+        if items:
+            try:
+                items_list = json_loads(items)
+            except ValueError:
+                return Response({'Status': False, 'Error': 'Неверный формат данных'})
+            else:
+                for item in items_list:
+                    try:
+                        product_info = ProductInfo.objects.filter(id=item['product_info']).first()
+                    except KeyError:
+                        return Response({'Status': 'Ошибка в поле product_info'})
+                    if product_info:
+                        try:
+                            OrderItem.objects.filter(product_info=product_info).update(quantity=item['quantity'])
+                        except KeyError as errors:
+                            return Response({'Status': f'{errors}'})
+                    else:
+                        return Response({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'Status': 'OK'})
+        else:
+            return Response({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['destroy'])
+    def delete_basket(self, request, *args, **kwargs):
+        if request.user.type != 'buyer':
+            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+        items = request.data.get('items')
+        if items:
+            for item in request.data['items'].split(','):
+                try:
+                    product_info = ProductInfo.objects.filter(id=item).first()
+                except KeyError:
+                    return Response({'Status': 'Ошибка в поле product_info'})
+                if product_info:
+                    order_item = OrderItem.objects.filter(product_info=product_info)
+                    self.perform_destroy(order_item)
+                else:
+                    return Response({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'Status': 'OK'})
         else:
             return Response({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
