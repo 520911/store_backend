@@ -1,4 +1,4 @@
-from rest_framework.exceptions import ValidationError
+from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 
 from accounts.serializers import UserSerializer, ContactsSerializer
@@ -48,17 +48,23 @@ class ProductInfoSerializer(ModelSerializer):
 
 
 class OrderItemSerializer(ModelSerializer):
-
     order = OrdersSerializer(read_only=True)
     product_info = ProductInfoSerializer()
+    full_price = SerializerMethodField()
+    full_price_rrc = SerializerMethodField()
 
     class Meta:
         model = OrderItem
-        fields = ['order', 'product_info', 'quantity']
+        fields = ['order', 'product_info', 'quantity', 'full_price', 'full_price_rrc']
+
+    def get_full_price(self, value):
+        return value.quantity * value.product_info.price
+
+    def get_full_price_rrc(self, value):
+        return value.quantity * value.product_info.price_rrc
 
 
 class OrderItemAddSerializer(ModelSerializer):
-
     class Meta:
         model = OrderItem
         fields = ['order', 'product_info', 'quantity']

@@ -4,11 +4,11 @@ from requests import get
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
 from yaml import load as load_yaml, Loader
-from orders.serializers import ShopSerializer, OrdersSerializer
+
 from orders.models import Shop, Category, ProductInfo, Product, Parameter, ProductParameter
+from orders.serializers import ShopSerializer, OrdersSerializer
 
 
 class PartnerUpdate(APIView):
@@ -67,7 +67,7 @@ class ShopStateView(APIView):
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
         user_shop = request.user.shop
         serializer = ShopSerializer(user_shop)
-        return Response(serializer.data)
+        return JsonResponse(serializer.data)
 
     def post(self, request, *args, **kwargs):
         if request.user.type != 'shop':
@@ -78,9 +78,9 @@ class ShopStateView(APIView):
             serializer = ShopSerializer(instance=request.user.shop, data=request.data, partial=True)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-                return Response({'Change info successfully': status.HTTP_200_OK})
+                return JsonResponse({'Change info successfully': status.HTTP_200_OK})
         else:
-            return Response({'Заполните все данные': 'state'})
+            return JsonResponse({'Заполните все данные': 'state'})
 
 
 class OrdersView(APIView):
@@ -91,4 +91,4 @@ class OrdersView(APIView):
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
         user_orders = request.user.orders
         serializer = OrdersSerializer(user_orders, many=True)
-        return Response(serializer.data)
+        return JsonResponse(serializer.data, safe=False)

@@ -7,7 +7,6 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from ujson import loads as json_loads
@@ -36,7 +35,7 @@ class OrderView(APIView):
             return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
         user_orders = request.user.orders
         serializer = OrdersSerializer(user_orders, many=True)
-        return Response(serializer.data)
+        return JsonResponse(serializer.data)
 
     def post(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
@@ -46,11 +45,11 @@ class OrderView(APIView):
             contact = Contact.objects.filter(id=request.data['contact']).first()
             if user and contact:
                 Order.objects.update_or_create(user=user, contact=contact, state='new')
-                return Response({'Status': 'OK'})
+                return JsonResponse({'Status': 'OK'})
             else:
-                return Response({'Status': 'Такого юзера или контакта не существует'})
+                return JsonResponse({'Status': 'Такого юзера или контакта не существует'})
         else:
-            return Response({'Заполните все данные': 'id, contact'})
+            return JsonResponse({'Заполните все данные': 'id, contact'})
 
 
 class SearchProductsView(ListAPIView):
@@ -86,6 +85,17 @@ class BasketView(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = OrderItemSerializer(queryset, many=True)
+        full_price = 0
+        full_price_rrc = 0
+        for prices in serializer.data:
+            full_price = full_price + prices['full_price']
+            full_price_rrc = full_price_rrc + prices['full_price_rrc']
+        return JsonResponse(serializer.data + [{'full_price': full_price}] + [{'full_price_rrc': full_price_rrc}],
+                            safe=False)
+
     @action(detail=True, methods=['post'])
     def create_basket(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
@@ -95,26 +105,27 @@ class BasketView(ModelViewSet):
             try:
                 items_list = json_loads(items)
             except ValueError:
-                return Response({'Status': False, 'Error': 'Неверный формат данных'})
+                return JsonResponse({'Status': False, 'Error': 'Неверный формат данных'})
             else:
                 order, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 for item in items_list:
                     try:
                         product_info = ProductInfo.objects.filter(id=item['product_info']).first()
                     except KeyError:
-                        return Response({'Status': 'Ошибка в поле product_info'})
+                        return JsonResponse({'Status': 'Ошибка в поле product_info'})
                     if product_info:
                         try:
                             OrderItem.objects.update_or_create(order_id=order.id,
                                                                product_info_id=product_info.id,
                                                                quantity=item['quantity'])
                         except (IntegrityError, KeyError) as errors:
-                            return Response({'Status': f'{errors}'})
+                            return JsonResponse({'Status': f'{errors}'})
                     else:
-                        return Response({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({'Status': 'OK'})
+                        return JsonResponse({'Error': 'Такого товара не существует'},
+                                            status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Status': 'OK'})
         else:
-            return Response({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put'])
     def update_basket(self, request, *args, **kwargs):
@@ -125,23 +136,23 @@ class BasketView(ModelViewSet):
             try:
                 items_list = json_loads(items)
             except ValueError:
-                return Response({'Status': False, 'Error': 'Неверный формат данных'})
+                return JsonResponse({'Status': False, 'Error': 'Неверный формат данных'})
             else:
                 for item in items_list:
                     try:
                         product_info = ProductInfo.objects.filter(id=item['product_info']).first()
                     except KeyError:
-                        return Response({'Status': 'Ошибка в поле product_info'})
+                        return JsonResponse({'Status': 'Ошибка в поле product_info'})
                     if product_info:
                         try:
                             OrderItem.objects.filter(product_info=product_info).update(quantity=item['quantity'])
                         except KeyError as errors:
-                            return Response({'Status': f'{errors}'})
+                            return JsonResponse({'Status': f'{errors}'})
                     else:
-                        return Response({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({'Status': 'OK'})
+                        return JsonResponse({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Status': 'OK'})
         else:
-            return Response({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['destroy'])
     def delete_basket(self, request, *args, **kwargs):
@@ -153,12 +164,12 @@ class BasketView(ModelViewSet):
                 try:
                     product_info = ProductInfo.objects.filter(id=item).first()
                 except KeyError:
-                    return Response({'Status': 'Ошибка в поле product_info'})
+                    return JsonResponse({'Status': 'Ошибка в поле product_info'})
                 if product_info:
                     order_item = OrderItem.objects.filter(product_info=product_info)
                     self.perform_destroy(order_item)
                 else:
-                    return Response({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({'Status': 'OK'})
+                    return JsonResponse({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Status': 'OK'})
         else:
-            return Response({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)

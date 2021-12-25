@@ -1,4 +1,6 @@
+from django.core.mail import EmailMultiAlternatives
 from django.db.models import Q
+from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
@@ -6,11 +8,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
+from shop import settings
 from .models import User, ConfirmEmailToken, Contact
 from .serializers import UserRegisterSerializer, ContactsSerializer, UserSerializer
 
@@ -29,13 +31,23 @@ class RegisterUserView(CreateAPIView):
                 user = serializer.save()
                 token, _ = ConfirmEmailToken.objects.get_or_create(user=user)
                 data['response'] = f'{user.last_name} {user.first_name} зарегистрирован'
-                data['token'] = token.key
-                return Response(data, status=status.HTTP_200_OK)
+                msg = EmailMultiAlternatives(
+                    # title:
+                    f"Confirm email token {user.email}",
+                    # message:
+                    f"Confirm email token {token.key}",
+                    # from:
+                    settings.EMAIL_HOST_USER,
+                    # to:
+                    [user.email]
+                )
+                msg.send()
+                return JsonResponse({'Status': 'Ok'}, status=status.HTTP_200_OK)
             else:
                 data = serializer.errors
-                return Response(data)
+                return JsonResponse(data)
         else:
-            return Response(
+            return JsonResponse(
                 {'Заполните все данные': 'first_name, last_name, email, password, password2, company, position'})
 
 
@@ -50,11 +62,11 @@ class ConfirmRegisterUserView(APIView):
                 user = User.objects.filter(email=request.data['email']).first()
                 user.is_active = True
                 user.save()
-                return Response({'status': 'Пользователь зарегистрирован'})
+                return JsonResponse({'status': 'Пользователь зарегистрирован'})
             else:
-                return Response({'status': 'Пользователь не зарегистрирован'})
+                return JsonResponse({'status': 'Пользователь не зарегистрирован'})
         else:
-            return Response({'Заполните все данные': 'email, token'})
+            return JsonResponse({'Заполните все данные': 'email, token'})
 
 
 class UserLoginView(APIView):
@@ -67,12 +79,12 @@ class UserLoginView(APIView):
             user = User.objects.filter(email=request.data['email']).first()
             token = Token.objects.create(user=user)
             if user and user.check_password(password):
-                return Response({'login status': f"{user.first_name} зарегистрирован",
-                                 'Authorization token': token.key})
+                return JsonResponse({'login status': f"{user.first_name} зарегистрирован",
+                                     'Authorization token': token.key})
             else:
-                return Response({'login status': 'Пользователь не зарегистрирован'})
+                return JsonResponse({'login status': 'Пользователь не зарегистрирован'})
         else:
-            return Response({'Заполните все данные': 'email, password'})
+            return JsonResponse({'Заполните все данные': 'email, password'})
 
 
 class UserDetailsView(APIView):
@@ -82,7 +94,7 @@ class UserDetailsView(APIView):
         user_id = Token.objects.get(key=request.auth.key).user_id
         user = User.objects.filter(id=user_id).first()
         response_data = UserSerializer(user)
-        return Response({"data": response_data.data})
+        return JsonResponse({"data": response_data.data})
 
     def post(self, request, *args, **kwargs):
         user_id = Token.objects.get(key=request.auth.key).user_id
@@ -90,7 +102,7 @@ class UserDetailsView(APIView):
         serializer = UserSerializer(instance=user, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
             context = serializer.save()
-            return Response({'Change info successfully': context.first_name})
+            return JsonResponse({'Change info successfully': context.first_name}, status=status.HTTP_200_OK)
 
 
 class ContactsView(ModelViewSet):
@@ -116,13 +128,13 @@ class ContactsView(ModelViewSet):
             serializer = ContactsSerializer(instance=contact, data=request.data, partial=True)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-                return Response({'Change info successfully': status.HTTP_200_OK})
+                return JsonResponse({'Change info successfully': 'Ok'}, status=status.HTTP_200_OK)
         else:
-            return Response({'Заполните все данные': 'id'})
+            return JsonResponse({'Заполните все данные': 'id'})
 
     @action(detail=True, methods=['destroy'])
     def contact_delete(self, request, *args, **kwargs):
         for contact_id in request.data['items'].split(','):
             contact = Contact.objects.filter(id=int(contact_id)).first()
             self.perform_destroy(contact)
-        return Response({'Deleted': f'Deleted {request.data["items"]}'}, status=status.HTTP_204_NO_CONTENT)
+        return JsonResponse({'Deleted': f'Deleted {request.data["items"]}'}, status=status.HTTP_204_NO_CONTENT)
