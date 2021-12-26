@@ -4,12 +4,15 @@ from django.dispatch import receiver
 
 from shop import settings
 from .models import ConfirmEmailToken
+from .tasks import send_token_email
 
 
 @receiver(signal=post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
-        token = ConfirmEmailToken.objects.create(user=instance)
+        # send_token_email.delay(instance.pk)
+
+        token, _ = ConfirmEmailToken.objects.get_or_create(user=instance)
         msg = EmailMultiAlternatives(
             # title:
             f"Confirm email token {instance.email}",
@@ -18,6 +21,20 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
             # from:
             settings.EMAIL_HOST_USER,
             # to:
-            instance.email
+            [instance.email]
         )
         msg.send()
+
+# def send_token(email, token, **kwargs):
+#     # token, _ = ConfirmEmailToken.objects.get_or_create(user=user)
+#     msg = EmailMultiAlternatives(
+#         # title:
+#         f"Confirm email token {email}",
+#         # message:
+#         f"Confirm email token {token.key}",
+#         # from:
+#         settings.EMAIL_HOST_USER,
+#         # to:
+#         [email]
+#     )
+#     msg.send()

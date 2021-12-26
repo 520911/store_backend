@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 from rest_framework import permissions
-from django.conf.urls import url
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 import debug_toolbar
@@ -37,7 +36,7 @@ urlpatterns = [
             extra_context={'schema_url': 'openapi-schema'}
         ),
         name='swagger-ui'),
-    url(  # new
+    path(  # new
         r'^swagger(?P<format>\.json|\.yaml)$',
         schema_view.without_ui(cache_timeout=0),
         name='schema-json'),

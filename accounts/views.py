@@ -26,22 +26,8 @@ class RegisterUserView(CreateAPIView):
     def post(self, request, *args, **kwargs):
         if {'first_name', 'last_name', 'email', 'password', 'password2', 'company', 'position'}.issubset(request.data):
             serializer = UserRegisterSerializer(data=request.data)
-            data = {}
             if serializer.is_valid(raise_exception=True):
-                user = serializer.save()
-                token, _ = ConfirmEmailToken.objects.get_or_create(user=user)
-                data['response'] = f'{user.last_name} {user.first_name} зарегистрирован'
-                msg = EmailMultiAlternatives(
-                    # title:
-                    f"Confirm email token {user.email}",
-                    # message:
-                    f"Confirm email token {token.key}",
-                    # from:
-                    settings.EMAIL_HOST_USER,
-                    # to:
-                    [user.email]
-                )
-                msg.send()
+                serializer.save()
                 return JsonResponse({'Status': 'Ok'}, status=status.HTTP_200_OK)
             else:
                 data = serializer.errors
@@ -50,6 +36,8 @@ class RegisterUserView(CreateAPIView):
             return JsonResponse(
                 {'Заполните все данные': 'first_name, last_name, email, password, password2, company, position'})
 
+    def perform_create(self, serializer):
+        serializer.save()
 
 class ConfirmRegisterUserView(APIView):
     permission_classes = [AllowAny]
