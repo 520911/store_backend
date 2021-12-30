@@ -26,13 +26,13 @@ class RegisterUserView(CreateAPIView):
             serializer = UserRegisterSerializer(data=request.data)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-                return JsonResponse({'Status': 'Ok'}, status=status.HTTP_200_OK)
+                return JsonResponse({'Status': 'Registered'}, status=status.HTTP_200_OK)
             else:
                 data = serializer.errors
                 return JsonResponse(data)
         else:
             return JsonResponse(
-                {'Заполните все данные': 'first_name, last_name, email, password, password2, company, position'})
+                {'Need all fields': 'first_name, last_name, email, password, password2, company, position'})
 
     def perform_create(self, serializer):
         serializer.save()
@@ -49,11 +49,11 @@ class ConfirmRegisterUserView(APIView):
                 user = User.objects.filter(email=request.data['email']).first()
                 user.is_active = True
                 user.save()
-                return JsonResponse({'status': 'Пользователь зарегистрирован'})
+                return JsonResponse({'Status': 'User confirmed'})
             else:
-                return JsonResponse({'status': 'Пользователь не зарегистрирован'})
+                return JsonResponse({'Status': 'User not confirmed'})
         else:
-            return JsonResponse({'Заполните все данные': 'email, token'})
+            return JsonResponse({'Need all fields': 'email, token'})
 
 
 class UserLoginView(APIView):
@@ -64,14 +64,14 @@ class UserLoginView(APIView):
         if {'email', 'password'}.issubset(request.data):
             password = request.data['password']
             user = User.objects.filter(email=request.data['email']).first()
-            token = Token.objects.create(user=user)
             if user and user.check_password(password):
-                return JsonResponse({'login status': f"{user.first_name} зарегистрирован",
+                token = Token.objects.create(user=user)
+                return JsonResponse({'Status': f"{user.first_name} registered",
                                      'Authorization token': token.key})
             else:
-                return JsonResponse({'login status': 'Пользователь не зарегистрирован'})
+                return JsonResponse({'Status': 'User not registered'})
         else:
-            return JsonResponse({'Заполните все данные': 'email, password'})
+            return JsonResponse({'Need all fields': 'email, password'})
 
 
 class UserDetailsView(APIView):
@@ -117,7 +117,7 @@ class ContactsView(ModelViewSet):
                 serializer.save()
                 return JsonResponse({'Change info successfully': 'Ok'}, status=status.HTTP_200_OK)
         else:
-            return JsonResponse({'Заполните все данные': 'id'})
+            return JsonResponse({'Need all fields': 'id'})
 
     @action(detail=True, methods=['destroy'])
     def contact_delete(self, request, *args, **kwargs):

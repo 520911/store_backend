@@ -32,24 +32,24 @@ class OrderView(APIView):
 
     def get(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
-            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         user_orders = request.user.orders
         serializer = OrdersSerializer(user_orders, many=True)
         return JsonResponse(serializer.data)
 
     def post(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
-            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         if {'id', 'contact'}.issubset(request.data):
             user = User.objects.filter(id=request.data['id']).first()
             contact = Contact.objects.filter(id=request.data['contact']).first()
             if user and contact:
                 Order.objects.update_or_create(user=user, contact=contact, state='new')
-                return JsonResponse({'Status': 'OK'})
+                return JsonResponse({'Status': 'Order created'})
             else:
-                return JsonResponse({'Status': 'Такого юзера или контакта не существует'})
+                return JsonResponse({'Error': 'User dos"t exists'})
         else:
-            return JsonResponse({'Заполните все данные': 'id, contact'})
+            return JsonResponse({'Need all fields': 'id, contact'})
 
 
 class SearchProductsView(ListAPIView):
@@ -99,7 +99,7 @@ class BasketView(ModelViewSet):
     @action(detail=True, methods=['post'])
     def create_basket(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
-            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         items = request.data.get('items')
         if items:
             try:
@@ -112,7 +112,7 @@ class BasketView(ModelViewSet):
                     try:
                         product_info = ProductInfo.objects.filter(id=item['product_info']).first()
                     except KeyError:
-                        return JsonResponse({'Status': 'Ошибка в поле product_info'})
+                        return JsonResponse({'Status': 'In field product_info'})
                     if product_info:
                         try:
                             OrderItem.objects.update_or_create(order_id=order.id,
@@ -121,16 +121,16 @@ class BasketView(ModelViewSet):
                         except (IntegrityError, KeyError) as errors:
                             return JsonResponse({'Status': f'{errors}'})
                     else:
-                        return JsonResponse({'Error': 'Такого товара не существует'},
+                        return JsonResponse({'Error': 'Product does"t exists'},
                                             status=status.HTTP_400_BAD_REQUEST)
             return JsonResponse({'Status': 'OK'})
         else:
-            return JsonResponse({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Need all fields': 'items'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put'])
     def update_basket(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
-            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         items = request.data.get('items')
         if items:
             try:
