@@ -1,4 +1,3 @@
-from django.core.mail import EmailMultiAlternatives
 from django.db.models import Q
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
@@ -12,7 +11,6 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from shop import settings
 from .models import User, ConfirmEmailToken, Contact
 from .serializers import UserRegisterSerializer, ContactsSerializer, UserSerializer
 
@@ -38,6 +36,7 @@ class RegisterUserView(CreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save()
+
 
 class ConfirmRegisterUserView(APIView):
     permission_classes = [AllowAny]
