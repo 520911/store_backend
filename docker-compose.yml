@@ -24,5 +24,24 @@ services:
     ports:
       - "6379:6379"
 
+#  api:
+#    depends_on:
+#      - postgres
+#      - mailhog
+#      - redis
+#    build: .
+#    command:
+#      - python3 ./shop/manage.py runserver 0.0.0.0:8000
+#      - celery -A shop worker -l info
+#    ports:
+#      - "8000:8000"
+#
+#  nginx:
+#    build: ./nginx
+#    depends_on:
+#      - api
+#    ports:
+#      - "8080:80"
+
 volumes:
   postgres_data:
