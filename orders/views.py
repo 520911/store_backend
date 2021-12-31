@@ -13,8 +13,8 @@ from ujson import loads as json_loads
 
 from accounts.models import User, Contact
 from .models import Shop, Category, Order, Product, OrderItem, ProductInfo
-from .serializers import ShopSerializer, CategoriesSerializer, OrdersSerializer, ProductsSerializer, \
-    OrderItemAddSerializer, OrderItemSerializer
+from .serializers import (ShopSerializer, CategoriesSerializer, OrdersSerializer, ProductsSerializer, \
+                          OrderItemAddSerializer, OrderItemSerializer)
 
 
 class ShopListView(ListAPIView):
@@ -35,19 +35,25 @@ class OrderView(APIView):
             return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         user_orders = request.user.orders
         serializer = OrdersSerializer(user_orders, many=True)
-        return JsonResponse(serializer.data)
+        return JsonResponse(serializer.data, safe=False)
 
     def post(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
             return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         if {'id', 'contact'}.issubset(request.data):
-            user = User.objects.filter(id=request.data['id']).first()
-            contact = Contact.objects.filter(id=request.data['contact']).first()
+            try:
+                user = User.objects.filter(id=request.data['id']).first()
+            except ValueError:
+                return JsonResponse({'Error': 'Field "id" expected a number'})
+            try:
+                contact = Contact.objects.filter(id=request.data['contact']).first()
+            except ValueError:
+                return JsonResponse({'Error': 'Field "contact" expected a number'})
             if user and contact:
                 Order.objects.update_or_create(user=user, contact=contact, state='new')
                 return JsonResponse({'Status': 'Order created'})
             else:
-                return JsonResponse({'Error': 'User dos"t exists'})
+                return JsonResponse({'Error': 'User or contact dos"t exists'})
         else:
             return JsonResponse({'Need all fields': 'id, contact'})
 
@@ -57,10 +63,10 @@ class SearchProductsView(ListAPIView):
     serializer_class = ProductsSerializer
 
     def get_queryset(self):
-        query = None
+        query = Q(product_infos__shop__state=True)
         category_id = self.request.query_params.get('category_id')
         if category_id:
-            query = Q(category_id=category_id)
+            query = query & Q(category_id=category_id)
         shop_id = self.request.query_params.get('shop_id')
         if shop_id:
             query = query & Q(product_infos__shop_id=shop_id)
@@ -105,7 +111,7 @@ class BasketView(ModelViewSet):
             try:
                 items_list = json_loads(items)
             except ValueError:
-                return JsonResponse({'Status': False, 'Error': 'Неверный формат данных'})
+                return JsonResponse({'Status': False, 'Error': 'Wrong format data'})
             else:
                 order, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 for item in items_list:
@@ -136,40 +142,40 @@ class BasketView(ModelViewSet):
             try:
                 items_list = json_loads(items)
             except ValueError:
-                return JsonResponse({'Status': False, 'Error': 'Неверный формат данных'})
+                return JsonResponse({'Status': False, 'Error': 'Wrong format data'})
             else:
                 for item in items_list:
                     try:
                         product_info = ProductInfo.objects.filter(id=item['product_info']).first()
                     except KeyError:
-                        return JsonResponse({'Status': 'Ошибка в поле product_info'})
+                        return JsonResponse({'Status': 'Error in field product_info'})
                     if product_info:
                         try:
                             OrderItem.objects.filter(product_info=product_info).update(quantity=item['quantity'])
                         except KeyError as errors:
                             return JsonResponse({'Status': f'{errors}'})
                     else:
-                        return JsonResponse({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
+                        return JsonResponse({'Product does"t exists'}, status=status.HTTP_400_BAD_REQUEST)
             return JsonResponse({'Status': 'OK'})
         else:
-            return JsonResponse({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Need all fields': 'items'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['destroy'])
     def delete_basket(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
-            return JsonResponse({'Status': False, 'Error': 'Только для покупателей'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         items = request.data.get('items')
         if items:
             for item in request.data['items'].split(','):
                 try:
                     product_info = ProductInfo.objects.filter(id=item).first()
                 except KeyError:
-                    return JsonResponse({'Status': 'Ошибка в поле product_info'})
+                    return JsonResponse({'Status': 'Error in field product_info'}, safe=False)
                 if product_info:
                     order_item = OrderItem.objects.filter(product_info=product_info)
                     self.perform_destroy(order_item)
                 else:
-                    return JsonResponse({'Такого товара не существует'}, status=status.HTTP_400_BAD_REQUEST)
-            return JsonResponse({'Status': 'OK'})
+                    return JsonResponse({'Error': 'Product does"t exists'}, safe=False)
+            return JsonResponse({'Status': 'OK'}, safe=False)
         else:
-            return JsonResponse({'Заполните все данные': 'items'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'Need all fields': 'items'}, status=status.HTTP_400_BAD_REQUEST)

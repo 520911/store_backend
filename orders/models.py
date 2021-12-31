@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Sum
 
 from accounts.models import User, Contact
 
@@ -22,8 +21,6 @@ class Shop(models.Model):
                                 blank=True, null=True,
                                 on_delete=models.CASCADE)
     state = models.BooleanField(verbose_name='статус получения заказов', default=True)
-
-    # filename
 
     class Meta:
         verbose_name = 'Магазин'

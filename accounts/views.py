@@ -121,7 +121,10 @@ class ContactsView(ModelViewSet):
 
     @action(detail=True, methods=['destroy'])
     def contact_delete(self, request, *args, **kwargs):
-        for contact_id in request.data['items'].split(','):
-            contact = Contact.objects.filter(id=int(contact_id)).first()
-            self.perform_destroy(contact)
-        return JsonResponse({'Deleted': f'Deleted {request.data["items"]}'}, status=status.HTTP_204_NO_CONTENT)
+        if {'items'}.issubset(request.data):
+            for contact_id in request.data['items'].split(','):
+                contact = Contact.objects.filter(id=int(contact_id)).first()
+                self.perform_destroy(contact)
+            return JsonResponse({'Deleted': f'Deleted {request.data["items"]}'}, status=status.HTTP_204_NO_CONTENT)
+        else:
+            return JsonResponse({'Need all fields': 'items'})
