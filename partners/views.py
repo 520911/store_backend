@@ -1,14 +1,12 @@
 from django.core.validators import URLValidator
 from django.http import JsonResponse
-from requests import get
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from yaml import load as load_yaml, Loader
 
-from orders.models import Shop, Category, ProductInfo, Product, Parameter, ProductParameter
 from orders.serializers import ShopSerializer, OrdersSerializer
+from .tasks import upload_partner_price
 
 
 class PartnerUpdate(APIView):
@@ -18,7 +16,7 @@ class PartnerUpdate(APIView):
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=status.HTTP_403_FORBIDDEN)
 
         if request.user.type != 'shop':
-            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for shops'}, status=status.HTTP_403_FORBIDDEN)
 
         url = request.data.get('url')
         if url:
@@ -28,35 +26,10 @@ class PartnerUpdate(APIView):
             except ValidationError as e:
                 return JsonResponse({'Status': False, 'Error': str(e)})
             else:
-                stream = get(url).content
-
-                data = load_yaml(stream, Loader=Loader)
-
-                shop, _ = Shop.objects.get_or_create(name=data['shop'], user_id=request.user.id)
-                for category in data['categories']:
-                    category_object, _ = Category.objects.get_or_create(id=category['id'], name=category['name'])
-                    category_object.shops.add(shop.id)
-                    category_object.save()
-                ProductInfo.objects.filter(shop_id=shop.id).delete()
-                for item in data['goods']:
-                    product, _ = Product.objects.get_or_create(name=item['name'], category_id=item['category'])
-
-                    product_info = ProductInfo.objects.create(product_id=product.id,
-                                                              external_id=item['id'],
-                                                              model=item['model'],
-                                                              price=item['price'],
-                                                              price_rrc=item['price_rrc'],
-                                                              quantity=item['quantity'],
-                                                              shop_id=shop.id)
-                    for name, value in item['parameters'].items():
-                        parameter_object, _ = Parameter.objects.get_or_create(name=name)
-                        ProductParameter.objects.create(product_info_id=product_info.id,
-                                                        parameter_id=parameter_object.id,
-                                                        value=value)
-
+                upload_partner_price.delay(url=url, user_id=request.user.id)
                 return JsonResponse({'Status': True})
 
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+        return JsonResponse({'Status': False, 'Errors': 'Need all arguments'})
 
 
 class ShopStateView(APIView):
@@ -64,14 +37,14 @@ class ShopStateView(APIView):
 
     def get(self, request, *args, **kwargs):
         if request.user.type != 'shop':
-            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for shops'}, status=status.HTTP_403_FORBIDDEN)
         user_shop = request.user.shop
         serializer = ShopSerializer(user_shop)
         return JsonResponse(serializer.data)
 
     def post(self, request, *args, **kwargs):
         if request.user.type != 'shop':
-            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for shops'}, status=status.HTTP_403_FORBIDDEN)
         if {'state'}.issubset(request.data):
             state = request.data.get('state')
             request.user.shop.state = bool(state)
@@ -80,7 +53,7 @@ class ShopStateView(APIView):
                 serializer.save()
                 return JsonResponse({'Change info successfully': status.HTTP_200_OK})
         else:
-            return JsonResponse({'Заполните все данные': 'state'})
+            return JsonResponse({'Need all fields': 'state'})
 
 
 class OrdersView(APIView):
@@ -88,7 +61,7 @@ class OrdersView(APIView):
 
     def get(self, request, *args, **kwargs):
         if request.user.type != 'shop':
-            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+            return JsonResponse({'Status': False, 'Error': 'Only for shops'}, status=status.HTTP_403_FORBIDDEN)
         user_orders = request.user.orders
         serializer = OrdersSerializer(user_orders, many=True)
         return JsonResponse(serializer.data, safe=False)
