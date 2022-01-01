@@ -10,6 +10,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("SECRET_KEY")
+# SECRET_KEY = 'django-insecure-3p)6c^g)dl5#go1(07utnu=b##7aee*4b9s76r)qp)yz9op5cu'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = int(os.environ.get("DEBUG", default=0))
@@ -21,7 +23,7 @@ ADMINS = (
 MANAGERS = ADMINS
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
-
+# ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
@@ -160,10 +162,10 @@ AUTH_USER_MODEL = 'accounts.User'
 # Email sending
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = '127.0.0.1'
+EMAIL_HOST = 'mailhog'
 EMAIL_PORT = 1025
 EMAIL_HOST_USER = 'admin@admin.ru'
-EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST_PASSWORD = None
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
 

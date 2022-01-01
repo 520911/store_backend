@@ -10,15 +10,13 @@ services:
 
   mailhog:
     image: mailhog/mailhog:latest
-    restart: always
     ports:
       - "1025:1025"
       - "8025:8025"
 
   redis:
-    image: 'redis:alpine'
+    image: redis:alpine
   celery:
-    restart: always
     build:
       context: .
     command: celery -A shop worker -l info
@@ -28,6 +26,12 @@ services:
       - postgres
       - redis
       - api
+  celery-beat:
+    build: .
+    command: celery -A proj beat -l info
+    depends_on:
+      - postgres
+      - redis
 
   api:
     build:
