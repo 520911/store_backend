@@ -6,7 +6,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - ./.env.dev
+      - .env
     ports:
       - "5432:5432"
 
@@ -23,7 +23,7 @@ services:
       context: .
     command: celery -A shop worker -l info
     env_file:
-      - ./.env.dev
+      - .env
     depends_on:
       - postgres
       - redis
@@ -44,7 +44,7 @@ services:
       sh -c "python3 manage.py migrate &&
              python3 manage.py runserver 0.0.0.0:8000"
     env_file:
-      - ./.env.dev
+      - .env
     depends_on:
       - postgres
       - mailhog

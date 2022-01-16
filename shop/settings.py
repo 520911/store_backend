@@ -99,22 +99,22 @@ WSGI_APPLICATION = 'shop.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get('POSTGRES_DB', default='shop'),
-        'USER': os.environ.get('POSTGRES_USER', default='shopuser'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', default='520911'),
-        'HOST': os.environ.get('DB_HOST', default='postgres'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': os.environ.get('POSTGRES_DB', default='shop'),
+#         'USER': os.environ.get('POSTGRES_USER', default='shopuser'),
+#         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', default='520911'),
+#         'HOST': os.environ.get('DB_HOST', default='localhost'),
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
