@@ -103,7 +103,7 @@ class BasketView(ModelViewSet):
                             safe=False)
 
     @action(detail=True, methods=['post'])
-    def create_basket(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
             return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         items = request.data.get('items')
@@ -134,7 +134,7 @@ class BasketView(ModelViewSet):
             return JsonResponse({'Need all fields': 'items'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put'])
-    def update_basket(self, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
             return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         items = request.data.get('items')
@@ -161,7 +161,7 @@ class BasketView(ModelViewSet):
             return JsonResponse({'Need all fields': 'items'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['destroy'])
-    def delete_basket(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         if request.user.type != 'buyer':
             return JsonResponse({'Status': False, 'Error': 'Only for buyers'}, status=status.HTTP_403_FORBIDDEN)
         items = request.data.get('items')

@@ -3,6 +3,8 @@ version: "3.9"
 services:
   postgres:
     image: postgres:14.1-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
     env_file:
       - ./.env.dev
     ports:
@@ -46,3 +48,6 @@ services:
     depends_on:
       - postgres
       - mailhog
+
+volumes:
+  postgres_data:

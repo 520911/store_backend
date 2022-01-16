@@ -109,22 +109,37 @@ class ContactsView(ModelViewSet):
         serializer.save(user=self.request.user)
 
     @action(detail=True, methods=['put'])
-    def contact_update(self, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         if {'id'}.issubset(request.data):
-            contact = Contact.objects.filter(id=request.data['id']).first()
-            serializer = ContactsSerializer(instance=contact, data=request.data, partial=True)
-            if serializer.is_valid(raise_exception=True):
-                serializer.save()
-                return JsonResponse({'Change info successfully': 'Ok'}, status=status.HTTP_200_OK)
+            if request.data['id']:
+                try:
+                    contact = Contact.objects.filter(id=request.data['id']).first()
+                    serializer = ContactsSerializer(instance=contact, data=request.data, partial=True)
+                    if serializer.is_valid(raise_exception=True):
+                        serializer.save()
+                        return JsonResponse({'Change info successfully': 'Ok'}, status=status.HTTP_200_OK)
+                except KeyError:
+                    return JsonResponse({'Error': f'No such contact id'})
+            else:
+                return JsonResponse({'Error': 'Id is None'}, status=status.HTTP_204_NO_CONTENT)
         else:
             return JsonResponse({'Need all fields': 'id'})
 
     @action(detail=True, methods=['destroy'])
-    def contact_delete(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         if {'items'}.issubset(request.data):
-            for contact_id in request.data['items'].split(','):
-                contact = Contact.objects.filter(id=int(contact_id)).first()
-                self.perform_destroy(contact)
-            return JsonResponse({'Deleted': f'Deleted {request.data["items"]}'}, status=status.HTTP_204_NO_CONTENT)
+            if request.data['items']:
+                for contact_id in request.data['items'].split(','):
+                    try:
+                        contact = Contact.objects.filter(id=int(contact_id)).first()
+                    except KeyError:
+                        return JsonResponse({'Error': f'No such contact id'})
+                    try:
+                        self.perform_destroy(contact)
+                    except AttributeError:
+                        return JsonResponse({'Error': f'No such contact id'})
+                return JsonResponse({'Deleted': f'Deleted {request.data["items"]}'}, status=status.HTTP_204_NO_CONTENT)
+            else:
+                return JsonResponse({'Error': 'Items is None'}, status=status.HTTP_204_NO_CONTENT)
         else:
             return JsonResponse({'Need all fields': 'items'})
