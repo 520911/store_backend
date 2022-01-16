@@ -109,10 +109,10 @@ WSGI_APPLICATION = 'shop.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get('POSTGRES_DB'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
+        'NAME': os.environ.get('POSTGRES_DB', default='shop'),
+        'USER': os.environ.get('POSTGRES_USER', default='shopuser'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', default='520911'),
+        'HOST': os.environ.get('DB_HOST', default='postgres'),
     }
 }
 

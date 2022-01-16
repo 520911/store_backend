@@ -18,7 +18,7 @@ app_name = 'accounts'
 # ])
 
 router = DefaultRouter()
-router.register('contact', ContactsView)
+router.register('contact', ContactsView, basename='contact')
 
 urlpatterns = [
     path('register/', RegisterUserView.as_view(), name='register'),

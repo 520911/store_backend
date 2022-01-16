@@ -17,7 +17,7 @@ app_name = 'orders'
 # ])
 
 router = DefaultRouter()
-router.register('basket', BasketView)
+router.register('basket', BasketView, basename='baskets')
 
 urlpatterns = [
     path('shops/', ShopListView.as_view(), name='shop_list'),
