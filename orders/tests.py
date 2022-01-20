@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from accounts.models import User
+from accounts.models import User, Contact
 from orders.models import Shop, Category, Order
 
 
@@ -45,8 +45,17 @@ class OrderTests(APITestCase):
         self.user_test = User.objects.create_user(email='test@test.ru', password='123test', is_active=True)
         self.user_test.save()
         self.user_1_token = Token.objects.create(user=self.user_test)
+        self.contact = Contact.objects.create(user=self.user_test,
+                                              city='test',
+                                              street='test',
+                                              phone='test')
+        self.data_error = {
+            'id': self.user_test.id,
+            'state': 'new'
+        }
         self.data = {
             'id': self.user_test.id,
+            'contact': self.contact.id,
             'state': 'new'
         }
 
@@ -58,10 +67,14 @@ class OrderTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.user_1_token.key)
         response = self.client.get(self.MAIN_URL + 'order/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_order_post_error(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.user_1_token.key)
+        response = self.client.post(self.MAIN_URL + 'order/', self.data_error).json()
+        self.assertEqual(response['Need all fields'], 'id, contact')
 
     def test_order_post(self):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.user_1_token.key)
-        response = self.client.post(self.MAIN_URL + 'order/', self.data, format='json')
-        print(response)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertEqual(Order.objects.count(), 1)
+        response = self.client.post(self.MAIN_URL + 'order/', self.data).json()
+        self.assertEqual(response['Status'], 'Order created')
