@@ -1,5 +1,3 @@
-import json
-
 import factory
 from django.db.models import signals
 from rest_framework import status
@@ -7,7 +5,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from accounts.models import User, Contact
-from orders.models import Shop, Category, Order
+from orders.models import Shop, Category, Order, Product, ProductInfo
 
 
 class ShopTests(APITestCase):
@@ -27,9 +25,9 @@ class CategoryTests(APITestCase):
     MAIN_URL = 'http://0.0.0.0:8000/api/v1/'
 
     def setUp(self):
-        shop = Shop.objects.create(name='Shop1')
-        category = Category.objects.create(name='Category1')
-        category.shops.set([shop])
+        self.shop = Shop.objects.create(name='Shop1')
+        self.category = Category.objects.create(name='Category1')
+        self.category.shops.set([self.shop])
 
     def test_category_list(self):
         response = self.client.get(self.MAIN_URL + 'categories/')
