@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
@@ -13,6 +14,10 @@ from rest_framework.viewsets import ModelViewSet
 
 from .models import User, ConfirmEmailToken, Contact
 from .serializers import UserRegisterSerializer, ContactsSerializer, UserSerializer
+
+
+def login(request):
+    return render(request, 'home.html')
 
 
 class RegisterUserView(CreateAPIView):
